@@ -1,3 +1,5 @@
+# Harvey Holt insisted upon knowing where he was.
+
 ## Samples
 
 > You are now in Kabul, Afghanistan
@@ -22,3 +24,7 @@
 > Cherbourg, Leeds, Shetlands, North Pole, Wrangel, Suva, Gisbourne, South
 > Pole, Kumasi, Ouagadougou, Tlemcen, Calatayud, Pamplona.
 
+## Data
+
+[simplemaps World Cities Database](http://simplemaps.com/data/world-cities)
+freely available MIT licensed dataset, last updated in 2015.
