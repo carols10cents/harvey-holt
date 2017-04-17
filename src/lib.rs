@@ -3,6 +3,8 @@ extern crate lazy_static;
 extern crate csv;
 extern crate rustc_serialize;
 
+use std::convert::From;
+
 #[derive(RustcDecodable)]
 struct Record {
     city: String,
@@ -15,19 +17,38 @@ struct Record {
     population: f64,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 struct Coord {
     deg: u8,
     min: u8,
     dir: char,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 struct City {
     name: String,
     latitude: Coord,
     longitude: Coord,
     population: f64,
+}
+
+impl From<Record> for City {
+    fn from(record: Record) -> City {
+        City {
+            name: record.city,
+            latitude: Coord {
+                deg: record.lat_deg,
+                min: record.lat_min,
+                dir: record.lat_dir,
+            },
+            longitude: Coord {
+                deg: record.long_deg,
+                min: record.long_min,
+                dir: record.long_dir,
+            },
+            population: record.population,
+        }
+    }
 }
 
 struct Cities {
@@ -36,34 +57,20 @@ struct Cities {
 }
 
 lazy_static! {
-    static ref DATA: Vec<Record> = csv::Reader::from_file("./data.csv")
+    static ref DATA: Vec<City> = csv::Reader::from_file("./data.csv")
         .unwrap()
-        .decode()
+        .decode::<Record>()
         .map(Result::unwrap)
+        .map(Record::into)
         .collect();
 }
 
 fn same_latitude(lat: Coord) -> Vec<City> {
     DATA
         .iter()
-        .filter(|r| {
-            r.lat_deg == lat.deg && r.lat_min == lat.min && r.lat_dir == lat.dir
-        })
-        .map(|r| {
-            City {
-                name: r.city.clone(),
-                latitude: Coord {
-                    deg: r.lat_deg,
-                    min: r.lat_min,
-                    dir: r.lat_dir,
-                },
-                longitude: Coord {
-                    deg: r.long_deg,
-                    min: r.long_min,
-                    dir: r.long_dir,
-                },
-                population: r.population,
-            }
+        .cloned()
+        .filter(|city| {
+            city.latitude == lat
         })
         .collect()
 }
