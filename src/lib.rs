@@ -80,6 +80,56 @@ fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
     cities.into_iter().take(10).collect()
 }
 
+fn sort_easterly(cities: Vec<City>, start_long: Coord) -> Vec<City> {
+    if start_long.dir == 'W' {
+        let mut start_to_prime_meridian: Vec<_> = cities.iter().filter(|c| {
+            c.longitude.dir == 'W' &&
+            (c.longitude.deg < start_long.deg || (
+                c.longitude.deg == start_long.deg &&
+                c.longitude.min < start_long.min
+            ))
+        }).cloned().collect();
+        start_to_prime_meridian.sort_by(|a, b| {
+            b.longitude.deg.cmp(&a.longitude.deg)
+        });
+
+        let mut eastern_hemisphere: Vec<_> = cities.iter().filter(|c| {
+            c.longitude.dir == 'E'
+        }).cloned().collect();
+        eastern_hemisphere.sort_by(|a, b| {
+            a.longitude.deg.cmp(&b.longitude.deg)
+        });
+
+        let mut date_line_to_start: Vec<_> = cities.iter().filter(|c| {
+            c.longitude.dir == 'W' &&
+            (c.longitude.deg > start_long.deg || (
+                c.longitude.deg == start_long.deg &&
+                c.longitude.min >= start_long.min
+            ))
+        }).cloned().collect();
+        date_line_to_start.sort_by(|a, b| {
+            b.longitude.deg.cmp(&a.longitude.deg)
+        });
+
+        let mut result = Vec::with_capacity(cities.len());
+        result.extend(start_to_prime_meridian);
+        result.extend(eastern_hemisphere);
+        result.extend(date_line_to_start);
+        result
+    } else {
+        unimplemented!();
+        // let start_to_date_line =
+        // let western_hemisphere =
+        // let prime_meridian_to_start =
+        //
+        // let result = Vec::with_capacity(cities.len());
+        // result.push_all(start_to_prime_meridian);
+        // result.push_all(eastern_hemisphere);
+        // result.push_all(date_line_to_start);
+        // result
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +158,24 @@ mod tests {
         assert_eq!(
             names,
             vec!["New York", "Madrid", "Baku", "Naples", "Pittsburgh", "Datong", "Bursa", "Jinxi", "Hohhot", "Baotou"]
+        );
+    }
+
+
+    #[test]
+    fn it_sorts_easterly() {
+        let lat = Coord { deg: 40, min: 25, dir: 'N' };
+        let long = Coord { deg: 79, min: 59, dir: 'W' };
+        let cities = same_latitude(lat);
+        let cities = top_10_by_population(cities);
+
+        let cities = sort_easterly(cities, long);
+
+        let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+
+        assert_eq!(
+            names,
+            vec!["New York", "Madrid", "Naples", "Bursa", "Baku", "Baotou", "Hohhot", "Datong", "Jinxi", "Pittsburgh"]
         );
     }
 }
