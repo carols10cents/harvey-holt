@@ -83,10 +83,10 @@ mod tests {
     fn it_finds_cities_with_same_latitude() {
         let lat = Coord { deg: 40, min: 25, dir: 'N'};
         let cities = same_latitude(lat);
-        let mut cities: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
-        cities.sort();
+        let mut names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+        names.sort();
         assert_eq!(
-            cities,
+            names,
             vec!["Greeley", "Lafayette", "Pittsburgh"]
         );
     }
