@@ -17,14 +17,14 @@ struct Record {
     population: f64,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 struct Coord {
     deg: u8,
     min: u8,
     dir: char,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 struct City {
     name: String,
     latitude: Coord,
@@ -75,6 +75,11 @@ fn same_latitude(lat: Coord) -> Vec<City> {
         .collect()
 }
 
+fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
+    cities.sort_by(|a, b| b.population.partial_cmp(&a.population).unwrap());
+    cities.into_iter().take(10).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,6 +93,21 @@ mod tests {
         assert_eq!(
             names,
             vec!["Adapazari", "Agdam", "Alexandroupoli", "Allentown", "Altoona", "Amasya", "Andijon", "Anxi", "Aomori", "Arcata", "Ashtarak", "Aveiro", "Baku", "Baotou", "Beaver Falls", "Berat", "Bilecik", "Bloomington", "Bolu", "Boulder", "Brindisi", "Burlington", "Bursa", "Canakkale", "Cankiri", "Canton", "Changping", "Chengde", "Chosan", "Coimbra", "Corovode", "Corum", "Covilha", "Craig", "Dandong", "Datong", "Dunhuang", "Elko", "Erseke", "Eureka", "Fargona", "Fengzhen", "Fier", "Fort Collins", "Gadabay", "Galesburg", "Ganca", "Gavarr", "Giresun", "Gjirokaster", "Goranboy", "Goycay", "Gramsh", "Grand Island", "Greeley", "Guadalajara", "Guarda", "Guliston", "Gumushane", "Gyumri", "Hachinohe", "Hanggin Houqi", "Harrisburg", "Hirosaki", "Hohhot", "Ijevan", "Izmit", "Jalal Abad", "Jinxi", "Jizzax", "Johnstown", "Kanggye", "Kars", "Katerini", "Kavala", "Kearney", "Khujand", "Kilchu", "Kimchaek", "Kimhyonggwon", "Kirksville", "Kokomo", "Konibodom", "Korce", "Lafayette", "Lancaster", "Lecce", "Lima", "Lincoln", "Lushnje", "Madrid", "Mansfield", "Marion", "McCook", "Muncie", "Naples", "Navoi", "New York", "Newark", "Olbia", "Olmaliq", "Osh", "Paterson", "Peoria", "Permet", "Pittsburgh", "Pogradec", "Polygyros", "Potenza", "Provo", "Qabala", "Qoqon", "Redding", "Sakarya", "Salamanca", "Salerno", "Salt Lake City", "Sassari", "Sinuiju", "State College", "Sumqayt", "Taedong", "Taranto", "Tekirdag", "Tepelene", "Thessaloniki", "Tokat", "Tovuz", "Trabzon", "Trenton", "Turkmenbasy", "Urbana", "Vanadzor", "Vernal", "Viseu", "Vlore", "Wheeling", "Winnemucca", "Xuanhua", "Yerevan", "Yevlax", "Yingkow", "Zhangjiakou"]
+        );
+    }
+
+    #[test]
+    fn it_filters_to_ten_by_population() {
+        let lat = Coord { deg: 40, min: 25, dir: 'N' };
+        let cities = same_latitude(lat);
+
+        let cities = top_10_by_population(cities);
+
+        let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+
+        assert_eq!(
+            names,
+            vec!["New York", "Madrid", "Baku", "Naples", "Pittsburgh", "Datong", "Bursa", "Jinxi", "Hohhot", "Baotou"]
         );
     }
 }
