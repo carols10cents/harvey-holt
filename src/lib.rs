@@ -11,39 +11,21 @@ use std::cmp::Ordering;
 #[derive(RustcDecodable)]
 struct Record {
     city: String,
-    lat_deg: u8,
-    lat_min: u8,
-    lat_dir: char,
-    long_deg: u8,
-    long_min: u8,
-    long_dir: char,
+    _city_ascii: String,
+    latitude: f64,
+    longitude: f64,
     population: f64,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-struct Coord {
-    deg: u8,
-    min: u8,
-    dir: char,
-}
-
-impl PartialOrd for Coord {
-    fn partial_cmp(&self, other: &Coord) -> Option<Ordering> {
-        if self.dir == other.dir {
-            let ord = self.deg.cmp(&other.deg)
-                .then(self.min.cmp(&other.min));
-            Some(ord)
-        } else {
-            None
-        }
-    }
+    _country: String,
+    _iso2: String,
+    _iso3: String,
+    _province: String,
 }
 
 #[derive(PartialEq, Clone, Debug)]
 struct City {
     name: String,
-    latitude: Coord,
-    longitude: Coord,
+    latitude: f64,
+    longitude: f64,
     population: f64,
 }
 
@@ -51,28 +33,15 @@ impl From<Record> for City {
     fn from(record: Record) -> City {
         City {
             name: record.city,
-            latitude: Coord {
-                deg: record.lat_deg,
-                min: record.lat_min,
-                dir: record.lat_dir,
-            },
-            longitude: Coord {
-                deg: record.long_deg,
-                min: record.long_min,
-                dir: record.long_dir,
-            },
+            latitude: record.latitude,
+            longitude: record.longitude,
             population: record.population,
         }
     }
 }
 
-struct Cities {
-    same_latitude: Vec<City>,
-    same_longitude: Vec<City>,
-}
-
 lazy_static! {
-    static ref DATA: Vec<City> = csv::Reader::from_file("./data.csv")
+    static ref DATA: Vec<City> = csv::Reader::from_file("./simplemaps-worldcities-basic.csv")
         .unwrap()
         .decode::<Record>()
         .map(Result::unwrap)
@@ -80,12 +49,15 @@ lazy_static! {
         .collect();
 }
 
-fn same_latitude(lat: Coord) -> Vec<City> {
+const LATITUDE_TOLERANCE: f64 = 0.5;
+
+fn same_latitude(lat: f64) -> Vec<City> {
     DATA
         .iter()
         .cloned()
         .filter(|city| {
-            city.latitude.deg == lat.deg && city.latitude.dir == lat.dir
+            city.latitude < lat + LATITUDE_TOLERANCE &&
+            lat - LATITUDE_TOLERANCE < city.latitude
         })
         .collect()
 }
@@ -95,46 +67,15 @@ fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
     cities.into_iter().take(10).collect()
 }
 
-fn sort_easterly(cities: Vec<City>, start_long: Coord) -> Vec<City> {
-    if start_long.dir == 'W' {
-        let mut start_to_prime_meridian: Vec<_> = cities.iter().filter(|c| {
-            c.longitude.dir == 'W' && c.longitude < start_long
-        }).cloned().collect();
-        start_to_prime_meridian.sort_by(|a, b| {
-            b.longitude.partial_cmp(&a.longitude).unwrap()
-        });
+fn sort_easterly(cities: Vec<City>, start_long: f64) -> Vec<City> {
+    cities
+}
 
-        let mut eastern_hemisphere: Vec<_> = cities.iter().filter(|c| {
-            c.longitude.dir == 'E'
-        }).cloned().collect();
-        eastern_hemisphere.sort_by(|a, b| {
-            a.longitude.partial_cmp(&b.longitude).unwrap()
-        });
-
-        let mut date_line_to_start: Vec<_> = cities.iter().filter(|c| {
-            c.longitude.dir == 'W' && c.longitude >= start_long
-        }).cloned().collect();
-        date_line_to_start.sort_by(|a, b| {
-            b.longitude.partial_cmp(&a.longitude).unwrap()
-        });
-
-        let mut result = Vec::with_capacity(cities.len());
-        result.extend(start_to_prime_meridian);
-        result.extend(eastern_hemisphere);
-        result.extend(date_line_to_start);
-        result
-    } else {
-        unimplemented!();
-        // let start_to_date_line =
-        // let western_hemisphere =
-        // let prime_meridian_to_start =
-        //
-        // let result = Vec::with_capacity(cities.len());
-        // result.push_all(start_to_prime_meridian);
-        // result.push_all(eastern_hemisphere);
-        // result.push_all(date_line_to_start);
-        // result
-    }
+fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
+    (
+        coord.abs().floor(),
+        ((coord.abs() * 60.0) % 60.0).floor()
+    )
 }
 
 #[cfg(test)]
@@ -143,19 +84,19 @@ mod tests {
 
     #[test]
     fn it_finds_cities_with_same_latitude() {
-        let lat = Coord { deg: 40, min: 25, dir: 'N' };
+        let lat = 40.4299986;
         let cities = same_latitude(lat);
         let mut names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
         names.sort();
         assert_eq!(
             names,
-            vec!["Adapazari", "Agdam", "Alexandroupoli", "Allentown", "Altoona", "Amasya", "Andijon", "Anxi", "Aomori", "Arcata", "Ashtarak", "Aveiro", "Baku", "Baotou", "Beaver Falls", "Berat", "Bilecik", "Bloomington", "Bolu", "Boulder", "Brindisi", "Burlington", "Bursa", "Canakkale", "Cankiri", "Canton", "Changping", "Chengde", "Chosan", "Coimbra", "Corovode", "Corum", "Covilha", "Craig", "Dandong", "Datong", "Dunhuang", "Elko", "Erseke", "Eureka", "Fargona", "Fengzhen", "Fier", "Fort Collins", "Gadabay", "Galesburg", "Ganca", "Gavarr", "Giresun", "Gjirokaster", "Goranboy", "Goycay", "Gramsh", "Grand Island", "Greeley", "Guadalajara", "Guarda", "Guliston", "Gumushane", "Gyumri", "Hachinohe", "Hanggin Houqi", "Harrisburg", "Hirosaki", "Hohhot", "Ijevan", "Izmit", "Jalal Abad", "Jinxi", "Jizzax", "Johnstown", "Kanggye", "Kars", "Katerini", "Kavala", "Kearney", "Khujand", "Kilchu", "Kimchaek", "Kimhyonggwon", "Kirksville", "Kokomo", "Konibodom", "Korce", "Lafayette", "Lancaster", "Lecce", "Lima", "Lincoln", "Lushnje", "Madrid", "Mansfield", "Marion", "McCook", "Muncie", "Naples", "Navoi", "New York", "Newark", "Olbia", "Olmaliq", "Osh", "Paterson", "Peoria", "Permet", "Pittsburgh", "Pogradec", "Polygyros", "Potenza", "Provo", "Qabala", "Qoqon", "Redding", "Sakarya", "Salamanca", "Salerno", "Salt Lake City", "Sassari", "Sinuiju", "State College", "Sumqayt", "Taedong", "Taranto", "Tekirdag", "Tepelene", "Thessaloniki", "Tokat", "Tovuz", "Trabzon", "Trenton", "Turkmenbasy", "Urbana", "Vanadzor", "Vernal", "Viseu", "Vlore", "Wheeling", "Winnemucca", "Xuanhua", "Yerevan", "Yevlax", "Yingkow", "Zhangjiakou"]
+            vec!["Adapazari", "Agdam", "Alexandroupoli", "Ali Bayramli", "Allentown", "Altoona", "Amasya", "Andijon", "Anxi", "Aomori", "Arcata", "Artashat", "Ashtarak", "Aveiro", "Baku", "Baotou", "Beaver Falls", "Berat", "Bilecik", "Bloomington", "Bolu", "Boulder", "Brindisi", "Burlington", "Bursa", "Canakkale", "Cankiri", "Canton", "Castello", "Changping", "Chosan", "Coimbra", "Columbus", "Corovode", "Corum", "Covilha", "Craig", "Dandong", "Datong", "Dunhuang", "Elko", "Erseke", "Eureka", "Fargona", "Fengzhen", "Fier", "Fort Collins", "Gadabay", "Ganca", "Gavarr", "Giresun", "Gjirokaster", "Goranboy", "Goycay", "Gramsh", "Grand Island", "Greeley", "Guadalajara", "Guarda", "Guliston", "Gumushane", "Gyumri", "Hachinohe", "Hanggin Houqi", "Harrisburg", "Hirosaki", "Hohhot", "Ijevan", "Izmit", "Jinxi", "Jizzax", "Johnstown", "Kars", "Katerini", "Kearney", "Khujand", "Kimchaek", "Kimhyonggwon", "Kirksville", "Kokomo", "Konibodom", "Korce", "Lafayette", "Lancaster", "Lecce", "Lima", "Lincoln", "Madrid", "Mansfield", "Marion", "McCook", "Muncie", "Naples", "Navoi", "New York", "Newark", "Olbia", "Olmaliq", "Osh", "Paterson", "Peoria", "Permet", "Philadelphia", "Pittsburgh", "Pogradec", "Polygyros", "Potenza", "Provo", "Qinhuangdao", "Qoqon", "Quincy", "Redding", "Sakarya", "Salerno", "Salt Lake City", "Sassari", "Sinuiju", "State College", "Sumqayt", "Taedong", "Taranto", "Tepelene", "Thessaloniki", "Tokat", "Trenton", "Turkmenbasy", "Urbana", "Vanadzor", "Vernal", "Viseu", "Vlore", "Wheeling", "Xuanhua", "Yerevan", "Yevlax", "Yingkow", "York", "Zanesville", "Zhangjiakou"]
         );
     }
 
     #[test]
     fn it_filters_to_ten_by_population() {
-        let lat = Coord { deg: 40, min: 25, dir: 'N' };
+        let lat = 40.4299986;
         let cities = same_latitude(lat);
 
         let cities = top_10_by_population(cities);
@@ -171,8 +112,8 @@ mod tests {
 
     #[test]
     fn it_sorts_easterly() {
-        let lat = Coord { deg: 40, min: 25, dir: 'N' };
-        let long = Coord { deg: 79, min: 59, dir: 'W' };
+        let lat = 40.4299986;
+        let long = -79.99998539;
         let cities = same_latitude(lat);
         let cities = top_10_by_population(cities);
 
