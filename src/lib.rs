@@ -1,9 +1,12 @@
+#![feature(ordering_chaining)]
+
 #[macro_use]
 extern crate lazy_static;
 extern crate csv;
 extern crate rustc_serialize;
 
 use std::convert::From;
+use std::cmp::Ordering;
 
 #[derive(RustcDecodable)]
 struct Record {
@@ -22,6 +25,18 @@ struct Coord {
     deg: u8,
     min: u8,
     dir: char,
+}
+
+impl PartialOrd for Coord {
+    fn partial_cmp(&self, other: &Coord) -> Option<Ordering> {
+        if self.dir == other.dir {
+            let ord = self.deg.cmp(&other.deg)
+                .then(self.min.cmp(&other.min));
+            Some(ord)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -83,32 +98,24 @@ fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
 fn sort_easterly(cities: Vec<City>, start_long: Coord) -> Vec<City> {
     if start_long.dir == 'W' {
         let mut start_to_prime_meridian: Vec<_> = cities.iter().filter(|c| {
-            c.longitude.dir == 'W' &&
-            (c.longitude.deg < start_long.deg || (
-                c.longitude.deg == start_long.deg &&
-                c.longitude.min < start_long.min
-            ))
+            c.longitude.dir == 'W' && c.longitude < start_long
         }).cloned().collect();
         start_to_prime_meridian.sort_by(|a, b| {
-            b.longitude.deg.cmp(&a.longitude.deg)
+            b.longitude.partial_cmp(&a.longitude).unwrap()
         });
 
         let mut eastern_hemisphere: Vec<_> = cities.iter().filter(|c| {
             c.longitude.dir == 'E'
         }).cloned().collect();
         eastern_hemisphere.sort_by(|a, b| {
-            a.longitude.deg.cmp(&b.longitude.deg)
+            a.longitude.partial_cmp(&b.longitude).unwrap()
         });
 
         let mut date_line_to_start: Vec<_> = cities.iter().filter(|c| {
-            c.longitude.dir == 'W' &&
-            (c.longitude.deg > start_long.deg || (
-                c.longitude.deg == start_long.deg &&
-                c.longitude.min >= start_long.min
-            ))
+            c.longitude.dir == 'W' && c.longitude >= start_long
         }).cloned().collect();
         date_line_to_start.sort_by(|a, b| {
-            b.longitude.deg.cmp(&a.longitude.deg)
+            b.longitude.partial_cmp(&a.longitude).unwrap()
         });
 
         let mut result = Vec::with_capacity(cities.len());
