@@ -4,6 +4,9 @@
 extern crate lazy_static;
 extern crate csv;
 extern crate rustc_serialize;
+extern crate itertools;
+
+use itertools::{Itertools, Either};
 
 use std::convert::From;
 use std::cmp::Ordering;
@@ -67,8 +70,20 @@ fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
     cities.into_iter().take(10).collect()
 }
 
-fn sort_easterly(cities: Vec<City>, start_long: f64) -> Vec<City> {
-    cities
+fn sort_easterly(mut cities: Vec<City>, start_long: f64) -> Vec<City> {
+    cities.sort_by(|a, b| a.longitude.partial_cmp(&b.longitude).unwrap());
+
+    let (mut west, mut east): (Vec<_>, Vec<_>) = cities
+        .into_iter()
+        .partition_map(|city| {
+            if city.longitude <= start_long {
+                Either::Left(city)
+            } else {
+                Either::Right(city)
+            }
+        });
+    east.append(&mut west);
+    east
 }
 
 fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
@@ -105,7 +120,7 @@ mod tests {
 
         assert_eq!(
             names,
-            vec!["New York", "Madrid", "Baku", "Naples", "Pittsburgh", "Datong", "Bursa", "Jinxi", "Hohhot", "Baotou"]
+            vec!["New York", "Philadelphia", "Madrid", "Baku", "Naples", "Pittsburgh", "Datong", "Bursa", "Jinxi", "Hohhot"]
         );
     }
 
@@ -123,7 +138,7 @@ mod tests {
 
         assert_eq!(
             names,
-            vec!["New York", "Madrid", "Naples", "Bursa", "Baku", "Baotou", "Hohhot", "Datong", "Jinxi", "Pittsburgh"]
+            vec!["Philadelphia", "New York", "Madrid", "Naples", "Bursa", "Baku", "Hohhot", "Datong", "Jinxi", "Pittsburgh"]
         );
     }
 }
