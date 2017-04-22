@@ -8,6 +8,7 @@ extern crate itertools;
 
 use itertools::{Itertools, Either};
 
+use std::fmt;
 use std::convert::From;
 use std::cmp::Ordering;
 
@@ -30,6 +31,12 @@ struct City {
     latitude: f64,
     longitude: f64,
     population: f64,
+}
+
+impl fmt::Display for City {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl From<Record> for City {
@@ -86,6 +93,17 @@ fn sort_easterly(mut cities: Vec<City>, start_long: f64) -> Vec<City> {
     east
 }
 
+fn latitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
+    let cities = same_latitude(latitude);
+    let cities = top_10_by_population(cities);
+    let cities = sort_easterly(cities, longitude);
+    cities
+}
+
+fn latitude_text(latitude: f64, longitude: f64) -> String {
+    format!("If you fly along this latitude in an easterly direction, you will look down on {}.", latitude_cities(latitude, longitude).iter().join(", "))
+}
+
 fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
     (
         coord.abs().floor(),
@@ -139,6 +157,19 @@ mod tests {
         assert_eq!(
             names,
             vec!["Philadelphia", "New York", "Madrid", "Naples", "Bursa", "Baku", "Hohhot", "Datong", "Jinxi", "Pittsburgh"]
+        );
+    }
+
+    #[test]
+    fn it_creates_latitude_text() {
+        let lat = 40.4299986;
+        let long = -79.99998539;
+
+        let latitude_text = latitude_text(lat, long);
+
+        assert_eq!(
+            latitude_text,
+            "If you fly along this latitude in an easterly direction, you will look down on Philadelphia, New York, Madrid, Naples, Bursa, Baku, Hohhot, Datong, Jinxi, Pittsburgh."
         );
     }
 }
