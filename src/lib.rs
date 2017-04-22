@@ -1,16 +1,15 @@
-#![feature(ordering_chaining)]
-
 #[macro_use]
 extern crate lazy_static;
 extern crate csv;
 extern crate rustc_serialize;
 extern crate itertools;
+#[macro_use]
+extern crate assert_approx_eq;
 
 use itertools::{Itertools, Either};
 
 use std::fmt;
 use std::convert::From;
-use std::cmp::Ordering;
 
 #[derive(RustcDecodable)]
 struct Record {
@@ -68,6 +67,33 @@ fn same_latitude(lat: f64) -> Vec<City> {
         .filter(|city| {
             city.latitude < lat + LATITUDE_TOLERANCE &&
             lat - LATITUDE_TOLERANCE < city.latitude
+        })
+        .collect()
+}
+
+fn opposite_longitude(long: f64) -> f64 {
+    let mut opposite_long = 180.0 - long.abs();
+
+    if long > 0.0 {
+        opposite_long *= -1.0;
+    };
+
+    opposite_long
+}
+
+const LONGITUDE_TOLERANCE: f64 = 0.5;
+
+fn same_longitude(long: f64) -> Vec<City> {
+    let opposite_long = opposite_longitude(long);
+
+    DATA
+        .iter()
+        .cloned()
+        .filter(|city| {
+            (city.longitude < long + LONGITUDE_TOLERANCE &&
+            long - LONGITUDE_TOLERANCE < city.longitude) ||
+            (city.longitude < opposite_long + LONGITUDE_TOLERANCE &&
+            opposite_long - LONGITUDE_TOLERANCE < city.longitude)
         })
         .collect()
 }
@@ -170,6 +196,33 @@ mod tests {
         assert_eq!(
             latitude_text,
             "If you fly along this latitude in an easterly direction, you will look down on Philadelphia, New York, Madrid, Naples, Bursa, Baku, Hohhot, Datong, Jinxi, Pittsburgh."
+        );
+    }
+
+    #[test]
+    fn it_finds_longitude_on_other_side_of_the_world() {
+        let long = -79.99998539;
+        assert_approx_eq!(
+            opposite_longitude(long),
+            100.00001461
+        );
+
+        let long = long * -1.0;
+        assert_approx_eq!(
+            opposite_longitude(long),
+            -100.00001461
+        );
+    }
+
+    #[test]
+    fn it_finds_cities_with_same_longitude() {
+        let long = -79.99998539;
+        let cities = same_longitude(long);
+        let mut names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+        names.sort();
+        assert_eq!(
+            names,
+            vec!["Alor Setar", "Ang Thong", "Babahoyo", "Balboa", "Ban Houayxay", "Barrie", "Beaver Falls", "Blacksburg", "Bukittinggi", "Butterworth", "Chainat", "Charleston", "Chiang Rai", "Chiclayo", "Chitre", "Chone", "Chulucanas", "Cienfuegos", "Clarksburg", "Cobalt", "Colon", "Coral Gables", "Coral Springs", "Dali", "Erie", "Esmeraldas", "Ferrenafe", "Florence", "Fort Lauderdale", "Fort Pierce", "George Town", "Greensboro", "Guayaquil", "Hamilton", "Hat Yai", "Homestead", "Hua Hin", "Kamphaeng Phet", "Kanchanaburi", "Kangar", "Las Tablas", "Lijiang", "Macara", "Machala", "Miami", "Miami Beach", "Milagro", "Morgantown", "Moron", "Motupe", "Muisne", "Nakhon Pathom", "Nakhon Sawan", "Nakhon Si Thammarat", "New Liskeard", "Nonthaburi", "Olmos", "Orangeville", "Pacasmayo", "Padang", "Padangpanjang", "Panama City", "Parry Sound", "Penonome", "Phatthalung", "Phayao", "Phetchaburi", "Phichit", "Phitsanulok", "Phrae", "Pimentel", "Pinas", "Pittsburgh", "Placetas", "Portoviejo", "Prachuap Khiri Khan", "Ratchaburi", "Roanoke", "Sagua la Grande", "Salisbury", "Samut Sakhon", "Samut Songkhram", "Santa Clara", "Satun", "Sing Buri", "Sukhothai", "Sumter", "Sungai Petani", "Supham Buri", "Thung Song", "Trang", "Tumbes", "Tura", "Uthai Thani", "Uttaradit", "Vero Beach", "West Palm Beach", "White Sulphur Springs", "Winston-Salem", "Zhangye"]
         );
     }
 }
