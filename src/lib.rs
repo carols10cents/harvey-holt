@@ -56,6 +56,20 @@ lazy_static! {
         .map(Result::unwrap)
         .map(Record::into)
         .collect();
+
+    static ref NORTH_POLE: City = City {
+        name: String::from("North Pole"),
+        latitude: 90.0,
+        longitude: 0.0,
+        population: 0.0,
+    };
+
+    static ref SOUTH_POLE: City = City {
+        name: String::from("South Pole"),
+        latitude: -90.0,
+        longitude: 0.0,
+        population: 0.0,
+    };
 }
 
 const LATITUDE_TOLERANCE: f64 = 0.5;
@@ -117,6 +131,48 @@ fn sort_easterly(mut cities: Vec<City>, start_long: f64) -> Vec<City> {
         });
     east.append(&mut west);
     east
+}
+
+fn sort_northerly(mut cities: Vec<City>, start_lat: f64, start_long: f64) -> Vec<City> {
+    let start_long_negative = start_long < 0.0;
+
+    let (mut same_side, mut opp_side): (Vec<_>, Vec<_>) = cities
+        .into_iter()
+        .partition_map(|city| {
+            if start_long_negative {
+                if city.longitude < 0.0 {
+                   Either::Left(city)
+                } else {
+                    Either::Right(city)
+                }
+            } else {
+                if city.longitude < 0.0 {
+                   Either::Right(city)
+                } else {
+                    Either::Left(city)
+                }
+            }
+        });
+
+    same_side.sort_by(|a, b| a.latitude.partial_cmp(&b.latitude).unwrap());
+
+    let (mut north, mut south): (Vec<_>, Vec<_>) = same_side
+        .into_iter()
+        .partition_map(|city| {
+            if city.latitude > start_lat {
+                Either::Left(city)
+            } else {
+                Either::Right(city)
+            }
+        });
+
+    opp_side.sort_by(|a, b| b.latitude.partial_cmp(&a.latitude).unwrap());
+
+    north.push(NORTH_POLE.clone());
+    north.append(&mut opp_side);
+    north.push(SOUTH_POLE.clone());
+    north.append(&mut south);
+    north
 }
 
 fn latitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
@@ -240,4 +296,20 @@ mod tests {
         );
     }
 
+    #[test]
+    fn it_sorts_northerly() {
+        let lat = 40.4299986;
+        let long = -79.99998539;
+        let cities = same_longitude(long);
+        let cities = top_10_by_population(cities);
+
+        let cities = sort_northerly(cities, lat, long);
+
+        let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+
+        assert_eq!(
+            names,
+            vec!["Hamilton", "North Pole", "George Town", "Padang", "South Pole", "Chiclayo", "Guayaquil", "Panama City", "Miami", "Fort Lauderdale", "West Palm Beach", "Pittsburgh"]
+        );
+    }
 }
