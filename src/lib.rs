@@ -168,7 +168,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn it_sorts_easterly() {
         let lat = 40.4299986;
@@ -225,4 +224,20 @@ mod tests {
             vec!["Alor Setar", "Ang Thong", "Babahoyo", "Balboa", "Ban Houayxay", "Barrie", "Beaver Falls", "Blacksburg", "Bukittinggi", "Butterworth", "Chainat", "Charleston", "Chiang Rai", "Chiclayo", "Chitre", "Chone", "Chulucanas", "Cienfuegos", "Clarksburg", "Cobalt", "Colon", "Coral Gables", "Coral Springs", "Dali", "Erie", "Esmeraldas", "Ferrenafe", "Florence", "Fort Lauderdale", "Fort Pierce", "George Town", "Greensboro", "Guayaquil", "Hamilton", "Hat Yai", "Homestead", "Hua Hin", "Kamphaeng Phet", "Kanchanaburi", "Kangar", "Las Tablas", "Lijiang", "Macara", "Machala", "Miami", "Miami Beach", "Milagro", "Morgantown", "Moron", "Motupe", "Muisne", "Nakhon Pathom", "Nakhon Sawan", "Nakhon Si Thammarat", "New Liskeard", "Nonthaburi", "Olmos", "Orangeville", "Pacasmayo", "Padang", "Padangpanjang", "Panama City", "Parry Sound", "Penonome", "Phatthalung", "Phayao", "Phetchaburi", "Phichit", "Phitsanulok", "Phrae", "Pimentel", "Pinas", "Pittsburgh", "Placetas", "Portoviejo", "Prachuap Khiri Khan", "Ratchaburi", "Roanoke", "Sagua la Grande", "Salisbury", "Samut Sakhon", "Samut Songkhram", "Santa Clara", "Satun", "Sing Buri", "Sukhothai", "Sumter", "Sungai Petani", "Supham Buri", "Thung Song", "Trang", "Tumbes", "Tura", "Uthai Thani", "Uttaradit", "Vero Beach", "West Palm Beach", "White Sulphur Springs", "Winston-Salem", "Zhangye"]
         );
     }
+
+    #[test]
+    fn it_filters_longitude_cities_to_ten_by_population() {
+        let long = -79.99998539;
+        let cities = same_longitude(long);
+
+        let cities = top_10_by_population(cities);
+
+        let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
+
+        assert_eq!(
+            names,
+            vec!["Miami", "Guayaquil", "George Town", "Pittsburgh", "Fort Lauderdale", "Padang", "Panama City", "West Palm Beach", "Hamilton", "Chiclayo"]
+        );
+    }
+
 }
