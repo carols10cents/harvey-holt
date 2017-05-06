@@ -184,8 +184,9 @@ fn latitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     cities
 }
 
-fn latitude_text(latitude: f64, longitude: f64) -> String {
-    format!("If you fly along this latitude in an easterly direction, you will look down on {}.", latitude_cities(latitude, longitude).iter().join(", "))
+fn latitude_text(city: City) -> String {
+    let (latitude, longitude) = (city.latitude, city.longitude);
+    format!("If you fly along this latitude in an easterly direction, you will look down on {}, {}.", latitude_cities(latitude, longitude).iter().take(9).join(", "), city)
 }
 
 fn longitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
@@ -195,8 +196,9 @@ fn longitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     cities
 }
 
-fn longitude_text(latitude: f64, longitude: f64) -> String {
-    format!("If you fly along this longitude starting north, you will look down on {}.", longitude_cities(latitude, longitude).iter().join(", "))
+fn longitude_text(city: City) -> String {
+    let (latitude, longitude) = (city.latitude, city.longitude);
+    format!("If you fly along this longitude starting north, you will look down on {}, {}.", longitude_cities(latitude, longitude).iter().take(11).join(", "), city)
 }
 
 fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
@@ -256,14 +258,35 @@ mod tests {
 
     #[test]
     fn it_creates_latitude_text() {
-        let lat = 40.4299986;
-        let long = -79.99998539;
+        let city = City {
+            name: String::from("Pittsburgh"),
+            latitude: 40.4299986,
+            longitude: -79.99998539,
+            population: 0.0, // doesn't matter here
+        };
 
-        let latitude_text = latitude_text(lat, long);
+        let latitude_text = latitude_text(city);
 
         assert_eq!(
             latitude_text,
             "If you fly along this latitude in an easterly direction, you will look down on Philadelphia, New York, Madrid, Naples, Bursa, Baku, Hohhot, Datong, Jinxi, Pittsburgh."
+        );
+    }
+
+    #[test]
+    fn it_creates_latitude_text_for_small_cities() {
+        let city = City {
+            name: String::from("Jaque"),
+            latitude: 7.518958353,
+            longitude: -78.16601465,
+            population: 0.0, // doesn't matter here
+        };
+
+        let latitude_text = latitude_text(city);
+
+        assert_eq!(
+            latitude_text,
+            "If you fly along this latitude in an easterly direction, you will look down on Bucaramanga, Cucuta, Bouake, Abeokuta, Ibadan, Oyo, Ife, Ado Ekiti, Ikare, Jaque."
         );
     }
 
@@ -328,14 +351,35 @@ mod tests {
 
     #[test]
     fn it_creates_longitude_text() {
-        let lat = 40.4299986;
-        let long = -79.99998539;
+        let city = City {
+            name: String::from("Pittsburgh"),
+            latitude: 40.4299986,
+            longitude: -79.99998539,
+            population: 0.0, // doesn't matter here
+        };
 
-        let longitude_text = longitude_text(lat, long);
+        let longitude_text = longitude_text(city);
 
         assert_eq!(
             longitude_text,
             "If you fly along this longitude starting north, you will look down on Hamilton, North Pole, George Town, Padang, South Pole, Chiclayo, Guayaquil, Panama City, Miami, Fort Lauderdale, West Palm Beach, Pittsburgh."
+        );
+    }
+
+    #[test]
+    fn it_creates_longitude_text_for_small_cities() {
+        let city = City {
+            name: String::from("Jaque"),
+            latitude: 7.518958353,
+            longitude: -78.16601465,
+            population: 0.0, // doesn't matter here
+        };
+
+        let longitude_text = longitude_text(city);
+
+        assert_eq!(
+            longitude_text,
+            "If you fly along this longitude starting north, you will look down on Raleigh, North Pole, Xining, Panzhihua, Kota Baharu, Kuala Lumpur, Shah Alam, Kelang, Malacca, Pekanbaru, South Pole, Jaque."
         );
     }
 }
