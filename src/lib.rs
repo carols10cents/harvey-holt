@@ -20,18 +20,20 @@ struct Record {
     latitude: f64,
     longitude: f64,
     population: f64,
-    _country: String,
+    country: String,
     _iso2: String,
     _iso3: String,
-    _province: String,
+    province: String,
 }
 
 #[derive(PartialEq, Clone, Debug)]
-struct City {
+pub struct City {
     name: String,
     latitude: f64,
     longitude: f64,
     population: f64,
+    country: String,
+    province: String,
 }
 
 impl fmt::Display for City {
@@ -47,6 +49,8 @@ impl From<Record> for City {
             latitude: record.latitude,
             longitude: record.longitude,
             population: record.population,
+            country: record.country,
+            province: record.province,
         }
     }
 }
@@ -64,6 +68,8 @@ lazy_static! {
         latitude: 90.0,
         longitude: 0.0,
         population: 0.0,
+        country: String::from("North Pole"),
+        province: String::from("North Pole"),
     };
 
     static ref SOUTH_POLE: City = City {
@@ -71,6 +77,8 @@ lazy_static! {
         latitude: -90.0,
         longitude: 0.0,
         population: 0.0,
+        country: String::from("Antarctica"),
+        province: String::from("South Pole"),
     };
 }
 
@@ -85,6 +93,23 @@ const NUM_CITIES_LATITUDE: usize = 9;
 // North Pole and South Pole are always included in the longitude text, but they
 // aren't particularly interesting; I want to return 10 cities plus them.
 const NUM_CITIES_LONGITUDE: usize = 11;
+
+pub fn location_text(city: City) -> String {
+    format!("You are now in {}, {}, {}
+{} {}
+
+{}
+
+{}",
+        city,
+        city.province,
+        city.country,
+        latitude_in_degrees(city.latitude),
+        longitude_in_degrees(city.longitude),
+        latitude_text(&city),
+        longitude_text(&city),
+    )
+}
 
 fn same_latitude(lat: f64) -> Vec<City> {
     DATA
@@ -194,7 +219,7 @@ fn latitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     cities
 }
 
-fn latitude_text(city: City) -> String {
+fn latitude_text(city: &City) -> String {
     let (latitude, longitude) = (city.latitude, city.longitude);
     format!("If you fly along this latitude in an easterly direction, you will look down on {}, {}.", latitude_cities(latitude, longitude).iter().take(NUM_CITIES_LATITUDE).join(", "), city)
 }
@@ -206,7 +231,7 @@ fn longitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     cities
 }
 
-fn longitude_text(city: City) -> String {
+fn longitude_text(city: &City) -> String {
     let (latitude, longitude) = (city.latitude, city.longitude);
     format!("If you fly along this longitude starting north, you will look down on {}, {}.", longitude_cities(latitude, longitude).iter().take(NUM_CITIES_LONGITUDE).join(", "), city)
 }
@@ -216,6 +241,18 @@ fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
         coord.abs().floor(),
         ((coord.abs() * 60.0) % 60.0).floor()
     )
+}
+
+fn latitude_in_degrees(coord: f64) -> String {
+    let dir = if coord > 0.0 { "N" } else { "S" };
+    let (deg, min) = decimal_to_degrees_minutes(coord);
+    format!("{}°{}'{}", deg, min, dir)
+}
+
+fn longitude_in_degrees(coord: f64) -> String {
+    let dir = if coord > 0.0 { "E" } else { "W" };
+    let (deg, min) = decimal_to_degrees_minutes(coord);
+    format!("{}°{}'{}", deg, min, dir)
 }
 
 #[cfg(test)]
@@ -273,9 +310,11 @@ mod tests {
             latitude: 40.4299986,
             longitude: -79.99998539,
             population: 0.0, // doesn't matter here
+            country: String::from("United States of America"),
+            province: String::from("Pennsylvania"),
         };
 
-        let latitude_text = latitude_text(city);
+        let latitude_text = latitude_text(&city);
 
         assert_eq!(
             latitude_text,
@@ -290,9 +329,11 @@ mod tests {
             latitude: 7.518958353,
             longitude: -78.16601465,
             population: 0.0, // doesn't matter here
+            country: String::from("Panama"),
+            province: String::from("Darién"),
         };
 
-        let latitude_text = latitude_text(city);
+        let latitude_text = latitude_text(&city);
 
         assert_eq!(
             latitude_text,
@@ -366,9 +407,11 @@ mod tests {
             latitude: 40.4299986,
             longitude: -79.99998539,
             population: 0.0, // doesn't matter here
+            country: String::from("United States of America"),
+            province: String::from("Pennsylvania"),
         };
 
-        let longitude_text = longitude_text(city);
+        let longitude_text = longitude_text(&city);
 
         assert_eq!(
             longitude_text,
@@ -383,13 +426,63 @@ mod tests {
             latitude: 7.518958353,
             longitude: -78.16601465,
             population: 0.0, // doesn't matter here
+            country: String::from("Panama"),
+            province: String::from("Darién"),
         };
 
-        let longitude_text = longitude_text(city);
+        let longitude_text = longitude_text(&city);
 
         assert_eq!(
             longitude_text,
             "If you fly along this longitude starting north, you will look down on Raleigh, North Pole, Xining, Panzhihua, Kota Baharu, Kuala Lumpur, Shah Alam, Kelang, Malacca, Pekanbaru, South Pole, Jaque."
+        );
+    }
+
+    #[test]
+    fn it_creates_full_text() {
+        let city = City {
+            name: String::from("Pittsburgh"),
+            latitude: 40.4299986,
+            longitude: -79.99998539,
+            population: 0.0, // doesn't matter here
+            country: String::from("United States of America"),
+            province: String::from("Pennsylvania"),
+        };
+
+        let text = location_text(city);
+
+        assert_eq!(
+            text,
+"You are now in Pittsburgh, Pennsylvania, United States of America
+40°25'N 79°59'W
+
+If you fly along this latitude in an easterly direction, you will look down on Philadelphia, New York, Madrid, Naples, Bursa, Baku, Hohhot, Datong, Jinxi, Pittsburgh.
+
+If you fly along this longitude starting north, you will look down on Hamilton, North Pole, George Town, Padang, South Pole, Chiclayo, Guayaquil, Panama City, Miami, Fort Lauderdale, West Palm Beach, Pittsburgh."
+        );
+    }
+
+    #[test]
+    fn it_creates_full_text_for_small_cities() {
+        let city = City {
+            name: String::from("Jaque"),
+            latitude: 7.518958353,
+            longitude: -78.16601465,
+            population: 0.0, // doesn't matter here
+            country: String::from("Panama"),
+            province: String::from("Darién"),
+        };
+
+        let text = location_text(city);
+
+        assert_eq!(
+            text,
+"You are now in Jaque, Darién, Panama
+7°31'N 78°9'W
+
+If you fly along this latitude in an easterly direction, you will look down on Bucaramanga, Cucuta, Bouake, Abeokuta, Ibadan, Oyo, Ife, Ado Ekiti, Ikare, Jaque.
+
+If you fly along this longitude starting north, you will look down on Raleigh, North Pole, Xining, Panzhihua, Kota Baharu, Kuala Lumpur, Shah Alam, Kelang, Malacca, Pekanbaru, South Pole, Jaque."
         );
     }
 }
