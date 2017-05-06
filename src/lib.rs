@@ -76,6 +76,16 @@ lazy_static! {
 
 const LATITUDE_TOLERANCE: f64 = 0.5;
 
+const NUM_CITIES: usize = 10;
+// The cities with the highest population may or may not include the current city;
+// I want to be sure I'm always including the current city exactly once and last.
+// So unconditionally remove the last sorted east/north and add on the current city
+// instead.
+const NUM_CITIES_LATITUDE: usize = 9;
+// North Pole and South Pole are always included in the longitude text, but they
+// aren't particularly interesting; I want to return 10 cities plus them.
+const NUM_CITIES_LONGITUDE: usize = 11;
+
 fn same_latitude(lat: f64) -> Vec<City> {
     DATA
         .iter()
@@ -114,9 +124,9 @@ fn same_longitude(long: f64) -> Vec<City> {
         .collect()
 }
 
-fn top_10_by_population(mut cities: Vec<City>) -> Vec<City> {
+fn top_by_population(mut cities: Vec<City>) -> Vec<City> {
     cities.sort_by(|a, b| b.population.partial_cmp(&a.population).unwrap());
-    cities.into_iter().take(10).collect()
+    cities.into_iter().take(NUM_CITIES).collect()
 }
 
 fn sort_easterly(mut cities: Vec<City>, start_long: f64) -> Vec<City> {
@@ -179,26 +189,26 @@ fn sort_northerly(cities: Vec<City>, start_lat: f64, start_long: f64) -> Vec<Cit
 
 fn latitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     let cities = same_latitude(latitude);
-    let cities = top_10_by_population(cities);
+    let cities = top_by_population(cities);
     let cities = sort_easterly(cities, longitude);
     cities
 }
 
 fn latitude_text(city: City) -> String {
     let (latitude, longitude) = (city.latitude, city.longitude);
-    format!("If you fly along this latitude in an easterly direction, you will look down on {}, {}.", latitude_cities(latitude, longitude).iter().take(9).join(", "), city)
+    format!("If you fly along this latitude in an easterly direction, you will look down on {}, {}.", latitude_cities(latitude, longitude).iter().take(NUM_CITIES_LATITUDE).join(", "), city)
 }
 
 fn longitude_cities(latitude: f64, longitude: f64) -> Vec<City> {
     let cities = same_longitude(longitude);
-    let cities = top_10_by_population(cities);
+    let cities = top_by_population(cities);
     let cities = sort_northerly(cities, latitude, longitude);
     cities
 }
 
 fn longitude_text(city: City) -> String {
     let (latitude, longitude) = (city.latitude, city.longitude);
-    format!("If you fly along this longitude starting north, you will look down on {}, {}.", longitude_cities(latitude, longitude).iter().take(11).join(", "), city)
+    format!("If you fly along this longitude starting north, you will look down on {}, {}.", longitude_cities(latitude, longitude).iter().take(NUM_CITIES_LONGITUDE).join(", "), city)
 }
 
 fn decimal_to_degrees_minutes(coord: f64) -> (f64, f64) {
@@ -229,7 +239,7 @@ mod tests {
         let lat = 40.4299986;
         let cities = same_latitude(lat);
 
-        let cities = top_10_by_population(cities);
+        let cities = top_by_population(cities);
 
         let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
 
@@ -244,7 +254,7 @@ mod tests {
         let lat = 40.4299986;
         let long = -79.99998539;
         let cities = same_latitude(lat);
-        let cities = top_10_by_population(cities);
+        let cities = top_by_population(cities);
 
         let cities = sort_easterly(cities, long);
 
@@ -322,7 +332,7 @@ mod tests {
         let long = -79.99998539;
         let cities = same_longitude(long);
 
-        let cities = top_10_by_population(cities);
+        let cities = top_by_population(cities);
 
         let names: Vec<_> = cities.iter().map(|ref c| &c.name).collect();
 
@@ -337,7 +347,7 @@ mod tests {
         let lat = 40.4299986;
         let long = -79.99998539;
         let cities = same_longitude(long);
-        let cities = top_10_by_population(cities);
+        let cities = top_by_population(cities);
 
         let cities = sort_northerly(cities, lat, long);
 
