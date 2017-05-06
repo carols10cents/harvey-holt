@@ -2,6 +2,10 @@
 name = "harvey-holt"
 version = "0.1.0"
 authors = ["Carol (Nichols || Goulding) <carol.nichols@gmail.com>"]
+repository = "https://github.com/carols10cents/harvey-holt"
+description = "Finds cities along the same latitude and longitude so you know where you are."
+readme = "README.md"
+license = "GPL-3.0"
 
 [dependencies]
 csv = "0.15.0"
