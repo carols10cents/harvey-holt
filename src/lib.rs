@@ -3,12 +3,14 @@ extern crate lazy_static;
 extern crate csv;
 extern crate rustc_serialize;
 extern crate itertools;
+extern crate rand;
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate assert_approx_eq;
 
 use itertools::{Itertools, Either};
+use rand::{thread_rng, sample};
 
 use std::fmt;
 use std::convert::From;
@@ -94,7 +96,14 @@ const NUM_CITIES_LATITUDE: usize = 9;
 // aren't particularly interesting; I want to return 10 cities plus them.
 const NUM_CITIES_LONGITUDE: usize = 11;
 
-pub fn location_text(city: City) -> String {
+pub fn random_location() -> String {
+    let mut rng = thread_rng();
+    let sample = sample(&mut rng, DATA.iter(), 1);
+
+    location_text(sample[0])
+}
+
+pub fn location_text(city: &City) -> String {
     format!("You are now in {}, {}, {}
 {} {}
 
@@ -449,7 +458,7 @@ mod tests {
             province: String::from("Pennsylvania"),
         };
 
-        let text = location_text(city);
+        let text = location_text(&city);
 
         assert_eq!(
             text,
@@ -473,7 +482,7 @@ If you fly along this longitude starting north, you will look down on Hamilton, 
             province: String::from("Darién"),
         };
 
-        let text = location_text(city);
+        let text = location_text(&city);
 
         assert_eq!(
             text,

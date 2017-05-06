@@ -1,3 +1,5 @@
+extern crate harvey_holt;
+
 fn main() {
-    println!("Hello, world!");
+    println!("{}", harvey_holt::random_location());
 }
